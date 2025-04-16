@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Acesso ao Hospital</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(to bottom, #e0f2fe, #bfdbfe);
+            background-image: url('https://images.unsplash.com/photo-1512675828443-4f4544e241d7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1350&q=80');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-blend-mode: overlay;
+            background-color: rgba(255, 255, 255, 0.8);
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .container:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        }
+        .priority-critical { background-color: #fee2e2; color: #dc2626; }
+        .priority-high { background-color: #fef3c7; color: #d97706; }
+        .priority-moderate { background-color: #dbeafe; color: #2563eb; }
+        .priority-low { background-color: #d1fae5; color: #059669; }
+        .priority-nonurgent { background-color: #f3f4f6; color: #6b7280; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 50;
+        }
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 24px;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+            transform: scale(0.9);
+            transition: transform 0.3s ease, opacity 0.3s ease;
+        }
+        .modal.active .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .slide-up { animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .input-focus:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+        .btn {
+            transform: scale(1);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .table-row:hover {
+            transform: scale(1.01);
+            transition: transform 0.2s ease;
+        }
+        .tooltip {
+            position: relative;
+        }
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 120px;
+            background-color: #374151;
+            color: white;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="container mx-auto p-8 max-w-4xl">
+        <h1 class="text-4xl font-bold text-center text-gray-900 mb-8 flex items-center justify-center">
+            <i class="fas fa-hospital mr-3 text-indigo-600 animate-pulse"></i>
+            Controle de Acesso ao Hospital
+        </h1>
+        
+        <!-- Formulário -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div class="col-span-1">
+                <label for="patientName" class="block text-sm font-medium text-gray-700">Nome do Paciente</label>
+                <input type="text" id="patientName" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" placeholder="Digite o nome">
+            </div>
+            <div class="col-span-1">
+                <label for="condition" class="block text-sm font-medium text-gray-700">Condição Médica</label>
+                <input type="text" id="condition" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus" placeholder="Digite a condição">
+            </div>
+            <div class="col-span-1">
+                <label for="priority" class="block text-sm font-medium text-gray-700">Prioridade</label>
+                <select id="priority" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg input-focus">
+                    <option value="1">1 - Crítica</option>
+                    <option value="2">2 - Alta</option>
+                    <option value="3">3 - Moderada</option>
+                    <option value="4">4 - Baixa</option>
+                    <option value="5">5 - Não Urgente</option>
+                </select>
+            </div>
+        </div>
+        <div class="flex space-x-6 mb-8">
+            <button onclick="addPatient()" class="tooltip flex-1 bg-indigo-600 text-white p-3 rounded-lg btn flex items-center justify-center">
+                <i class="fas fa-plus mr-2"></i> Adicionar Paciente
+                <span class="tooltip-text">Adiciona um novo paciente à fila</span>
+            </button>
+            <button onclick="openAttendModal()" class="tooltip flex-1 bg-green-600 text-white p-3 rounded-lg btn flex items-center justify-center">
+                <i class="fas fa-user-md mr-2"></i> Atender Próximo
+                <span class="tooltip-text">Atende o paciente com maior prioridade</span>
+            </button>
+        </div>
+        <p id="feedback" class="text-sm text-green-600 mb-4 hidden slide-up"></p>
+        <p id="error" class="text-sm text-red-600 mb-4 hidden slide-up"></p>
+
+        <!-- Fila -->
+        <div id="queueDisplay" class="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">Fila Atual</h3>
+            <div id="queueContent" class="text-gray-600">
+                <p>Fila vazia.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Atendimento -->
+    <div id="attendModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Atender Próximo Paciente</h2>
+            <p id="modalPatient" class="text-gray-600 mb-6"></p>
+            <div class="flex space-x-4">
+                <button onclick="attendNextPatient()" class="flex-1 bg-green-600 text-white p-3 rounded-lg btn">Confirmar</button>
+                <button onclick="closeAttendModal()" class="flex-1 bg-gray-600 text-white p-3 rounded-lg btn">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Classe para representar um paciente
+        class Patient {
+            constructor(priority, name, condition, arrivalTime = new Date()) {
+                this.priority = parseInt(priority);
+                this.name = name;
+                this.condition = condition;
+                this.arrivalTime = arrivalTime;
+            }
+
+            toString() {
+                return `Paciente: ${this.name}, Condição: ${this.condition}, Prioridade: ${this.priority}, Chegada: ${this.arrivalTime.toLocaleTimeString()}`;
+            }
+
+            getPriorityClass() {
+                switch (this.priority) {
+                    case 1: return 'priority-critical';
+                    case 2: return 'priority-high';
+                    case 3: return 'priority-moderate';
+                    case 4: return 'priority-low';
+                    case 5: return 'priority-nonurgent';
+                    default: return '';
+                }
+            }
+
+            getPriorityIcon() {
+                switch (this.priority) {
+                    case 1: return '<i class="fas fa-exclamation-circle text-red-600"></i>';
+                    case 2: return '<i class="fas fa-exclamation-triangle text-yellow-600"></i>';
+                    case 3: return '<i class="fas fa-info-circle text-blue-600"></i>';
+                    case 4: return '<i class="fas fa-check-circle text-green-600"></i>';
+                    case 5: return '<i class="fas fa-circle text-gray-600"></i>';
+                    default: return '';
+                }
+            }
+        }
+
+        // Classe para gerenciar a fila com prioridade
+        class HospitalQueue {
+            constructor() {
+                this.queue = [];
+                this.counter = 0;
+            }
+
+            addPatient(name, condition, priority) {
+                if (!name.trim() || !condition.trim()) {
+                    showError("Nome e condição são obrigatórios.");
+                    return false;
+                }
+                if (priority < 1 || priority > 5) {
+                    showError("Prioridade deve ser entre 1 e 5.");
+                    return false;
+                }
+                const patient = new Patient(priority, name, condition);
+                this.queue.push([patient.priority, this.counter++, patient]);
+                this._heapifyUp(this.queue.length - 1);
+                showFeedback(`Paciente ${name} adicionado com sucesso!`);
+                this.showQueue();
+                return true;
+            }
+
+            nextPatient() {
+                if (this.isEmpty()) {
+                    showError("Fila vazia.");
+                    return null;
+                }
+                const [_, __, patient] = this.queue[0];
+                this.queue[0] = this.queue[this.queue.length - 1];
+                this.queue.pop();
+                if (this.queue.length > 0) {
+                    this._heapifyDown(0);
+                }
+                this.showQueue();
+                return patient;
+            }
+
+            isEmpty() {
+                return this.queue.length === 0;
+            }
+
+            showQueue() {
+                const queueContent = document.getElementById('queueContent');
+                if (this.isEmpty()) {
+                    queueContent.innerHTML = '<p class="text-gray-500 italic">Fila vazia.</p>';
+                    return;
+                }
+                const sortedQueue = [...this.queue].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+                queueContent.innerHTML = `
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="text-gray-700 bg-gray-100">
+                                <th class="p-3 rounded-tl-lg">Nome</th>
+                                <th class="p-3">Condição</th>
+                                <th class="p-3">Prioridade</th>
+                                <th class="p-3 rounded-tr-lg">Chegada</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sortedQueue.map(([, , patient]) => `
+                                <tr class="${patient.getPriorityClass()} table-row">
+                                    <td class="p-3 border-t">${patient.name}</td>
+                                    <td class="p-3 border-t">${patient.condition}</td>
+                                    <td class="p-3 border-t">${patient.getPriorityIcon()} ${patient.priority}</td>
+                                    <td class="p-3 border-t">${patient.arrivalTime.toLocaleTimeString()}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            _heapifyUp(index) {
+                let current = index;
+                while (current > 0) {
+                    const parent = Math.floor((current - 1) / 2);
+                    if (this.queue[current][0] >= this.queue[parent][0]) break;
+                    [this.queue[current], this.queue[parent]] = [this.queue[parent], this.queue[current]];
+                    current = parent;
+                }
+            }
+
+            _heapifyDown(index) {
+                let current = index;
+                const length = this.queue.length;
+                while (true) {
+                    let smallest = current;
+                    const left = 2 * current + 1;
+                    const right = 2 * current + 2;
+                    if (left < length && this.queue[left][0] < this.queue[smallest][0]) {
+                        smallest = left;
+                    }
+                    if (right < length && this.queue[right][0] < this.queue[smallest][0]) {
+                        smallest = right;
+                    }
+                    if (smallest === current) break;
+                    [this.queue[current], this.queue[smallest]] = [this.queue[smallest], this.queue[current]];
+                    current = smallest;
+                }
+            }
+        }
+
+        // Instancia a fila
+        const hospitalQueue = new HospitalQueue();
+
+        // Funções da interface
+        function addPatient() {
+            const name = document.getElementById('patientName').value;
+            const condition = document.getElementById('condition').value;
+            const priority = document.getElementById('priority').value;
+            if (hospitalQueue.addPatient(name, condition, priority)) {
+                document.getElementById('patientName').value = '';
+                document.getElementById('condition').value = '';
+            }
+        }
+
+        function openAttendModal() {
+            if (hospitalQueue.isEmpty()) {
+                showError("Fila vazia.");
+                return;
+            }
+            const patient = hospitalQueue.queue[0][2];
+            document.getElementById('modalPatient').innerText = `Atender: ${patient.toString()}`;
+            const modal = document.getElementById('attendModal');
+            modal.style.display = 'block';
+            modal.classList.add('active');
+        }
+
+        function closeAttendModal() {
+            const modal = document.getElementById('attendModal');
+            modal.style.display = 'none';
+            modal.classList.remove('active');
+        }
+
+        function attendNextPatient() {
+            const patient = hospitalQueue.nextPatient();
+            if (patient) {
+                showFeedback(`Atendendo: ${patient.name}`);
+                closeAttendModal();
+            }
+        }
+
+        function showFeedback(message) {
+            const feedback = document.getElementById('feedback');
+            feedback.innerText = message;
+            feedback.classList.remove('hidden');
+            setTimeout(() => feedback.classList.add('hidden'), 3000);
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.innerText = message;
+            error.classList.remove('hidden');
+            setTimeout(() => error.classList.add('hidden'), 3000);
+        }
+    </script>
+</body>
+</html>
