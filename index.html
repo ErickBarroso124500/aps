@@ -303,8 +303,32 @@
             }
         }
 
-        // Instancia a fila
+        // Instancia a fila com pacientes pré-preparados
         const hospitalQueue = new HospitalQueue();
+
+        // Adiciona pacientes iniciais com diferentes prioridades e horários
+        const initialPatients = [
+            { name: "João Silva", condition: "Infarto agudo", priority: 1, timeOffset: -30 }, // 30 minutos atrás
+            { name: "Maria Oliveira", condition: "Fratura exposta", priority: 2, timeOffset: -20 }, // 20 minutos atrás
+            { name: "Pedro Santos", condition: "Febre alta", priority: 3, timeOffset: -15 }, // 15 minutos atrás
+            { name: "Ana Costa", condition: "Dor abdominal leve", priority: 4, timeOffset: -10 }, // 10 minutos atrás
+            { name: "Lucas Almeida", condition: "Consulta de rotina", priority: 5, timeOffset: -5 }  // 5 minutos atrás
+        ];
+
+        initialPatients.forEach(patient => {
+            const arrivalTime = new Date();
+            arrivalTime.setMinutes(arrivalTime.getMinutes() + patient.timeOffset);
+            const newPatient = new Patient(patient.priority, patient.name, patient.condition, arrivalTime);
+            hospitalQueue.queue.push([newPatient.priority, hospitalQueue.counter++, newPatient]);
+        });
+
+        // Reorganiza a fila para manter a propriedade do heap
+        for (let i = Math.floor(hospitalQueue.queue.length / 2) - 1; i >= 0; i--) {
+            hospitalQueue._heapifyDown(i);
+        }
+
+        // Exibe a fila inicial
+        hospitalQueue.showQueue();
 
         // Funções da interface
         function addPatient() {
