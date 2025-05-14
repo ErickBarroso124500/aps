@@ -164,222 +164,292 @@
 
     <script>
         // Classe para representar um paciente
-        class Patient {
-            constructor(priority, name, condition, arrivalTime = new Date()) {
-                this.priority = parseInt(priority);
-                this.name = name;
-                this.condition = condition;
-                this.arrivalTime = arrivalTime;
-            }
+        // Classe para representar um paciente
+class Patient {
+    // Construtor da classe Patient
+    // Recebe prioridade, nome, condição médica e horário de chegada (padrão: data atual)
+    constructor(priority, name, condition, arrivalTime = new Date()) {
+        this.priority = parseInt(priority); // Converte a prioridade para inteiro (1 a 5)
+        this.name = name; // Armazena o nome do paciente
+        this.condition = condition; // Armazena a condição médica
+        this.arrivalTime = arrivalTime; // Armazena o horário de chegada
+    }
 
-            toString() {
-                return `Paciente: ${this.name}, Condição: ${this.condition}, Prioridade: ${this.priority}, Chegada: ${this.arrivalTime.toLocaleTimeString()}`;
-            }
+    // Método para converter o objeto paciente em uma string legível
+    toString() {
+        return `Paciente: ${this.name}, Condição: ${this.condition}, Prioridade: ${this.priority}, Chegada: ${this.arrivalTime.toLocaleTimeString()}`;
+    }
 
-            getPriorityClass() {
-                switch (this.priority) {
-                    case 1: return 'priority-critical';
-                    case 2: return 'priority-high';
-                    case 3: return 'priority-moderate';
-                    case 4: return 'priority-low';
-                    case 5: return 'priority-nonurgent';
-                    default: return '';
-                }
-            }
-
-            getPriorityIcon() {
-                switch (this.priority) {
-                    case 1: return '<i class="fas fa-exclamation-circle text-red-600"></i>';
-                    case 2: return '<i class="fas fa-exclamation-triangle text-yellow-600"></i>';
-                    case 3: return '<i class="fas fa-info-circle text-blue-600"></i>';
-                    case 4: return '<i class="fas fa-check-circle text-green-600"></i>';
-                    case 5: return '<i class="fas fa-circle text-gray-600"></i>';
-                    default: return '';
-                }
-            }
+    // Método que retorna a classe CSS correspondente à prioridade do paciente
+    // Usado para estilizar a linha da tabela com cores específicas
+    getPriorityClass() {
+        switch (this.priority) {
+            case 1: return 'priority-critical'; // Prioridade 1: vermelho claro
+            case 2: return 'priority-high'; // Prioridade 2: amarelo claro
+            case 3: return 'priority-moderate'; // Prioridade 3: azul claro
+            case 4: return 'priority-low'; // Prioridade 4: verde claro
+            case 5: return 'priority-nonurgent'; // Prioridade 5: cinza claro
+            default: return ''; // Caso padrão (não esperado)
         }
+    }
 
-        // Classe para gerenciar a fila com prioridade
-        class HospitalQueue {
-            constructor() {
-                this.queue = [];
-                this.counter = 0;
-            }
-
-            addPatient(name, condition, priority) {
-                if (!name.trim() || !condition.trim()) {
-                    showError("Nome e condição são obrigatórios.");
-                    return false;
-                }
-                if (priority < 1 || priority > 5) {
-                    showError("Prioridade deve ser entre 1 e 5.");
-                    return false;
-                }
-                const patient = new Patient(priority, name, condition);
-                this.queue.push([patient.priority, this.counter++, patient]);
-                this._heapifyUp(this.queue.length - 1);
-                showFeedback(`Paciente ${name} adicionado com sucesso!`);
-                this.showQueue();
-                return true;
-            }
-
-            nextPatient() {
-                if (this.isEmpty()) {
-                    showError("Fila vazia.");
-                    return null;
-                }
-                const [_, __, patient] = this.queue[0];
-                this.queue[0] = this.queue[this.queue.length - 1];
-                this.queue.pop();
-                if (this.queue.length > 0) {
-                    this._heapifyDown(0);
-                }
-                this.showQueue();
-                return patient;
-            }
-
-            isEmpty() {
-                return this.queue.length === 0;
-            }
-
-            showQueue() {
-                const queueContent = document.getElementById('queueContent');
-                if (this.isEmpty()) {
-                    queueContent.innerHTML = '<p class="text-gray-500 italic">Fila vazia.</p>';
-                    return;
-                }
-                const sortedQueue = [...this.queue].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-                queueContent.innerHTML = `
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="text-gray-700 bg-gray-100">
-                                <th class="p-3 rounded-tl-lg">Nome</th>
-                                <th class="p-3">Condição</th>
-                                <th class="p-3">Prioridade</th>
-                                <th class="p-3 rounded-tr-lg">Chegada</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${sortedQueue.map(([, , patient]) => `
-                                <tr class="${patient.getPriorityClass()} table-row">
-                                    <td class="p-3 border-t">${patient.name}</td>
-                                    <td class="p-3 border-t">${patient.condition}</td>
-                                    <td class="p-3 border-t">${patient.getPriorityIcon()} ${patient.priority}</td>
-                                    <td class="p-3 border-t">${patient.arrivalTime.toLocaleTimeString()}</td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                `;
-            }
-
-            _heapifyUp(index) {
-                let current = index;
-                while (current > 0) {
-                    const parent = Math.floor((current - 1) / 2);
-                    if (this.queue[current][0] >= this.queue[parent][0]) break;
-                    [this.queue[current], this.queue[parent]] = [this.queue[parent], this.queue[current]];
-                    current = parent;
-                }
-            }
-
-            _heapifyDown(index) {
-                let current = index;
-                const length = this.queue.length;
-                while (true) {
-                    let smallest = current;
-                    const left = 2 * current + 1;
-                    const right = 2 * current + 2;
-                    if (left < length && this.queue[left][0] < this.queue[smallest][0]) {
-                        smallest = left;
-                    }
-                    if (right < length && this.queue[right][0] < this.queue[smallest][0]) {
-                        smallest = right;
-                    }
-                    if (smallest === current) break;
-                    [this.queue[current], this.queue[smallest]] = [this.queue[smallest], this.queue[current]];
-                    current = smallest;
-                }
-            }
+    // Método que retorna o ícone correspondente à prioridade do paciente
+    // Usado para exibir ícones visuais na tabela
+    getPriorityIcon() {
+        switch (this.priority) {
+            case 1: return '<i class="fas fa-exclamation-circle text-red-600"></i>'; // Ícone de alerta vermelho
+            case 2: return '<i class="fas fa-exclamation-triangle text-yellow-600"></i>'; // Ícone de alerta amarelo
+            case 3: return '<i class="fas fa-info-circle text-blue-600"></i>'; // Ícone de informação azul
+            case 4: return '<i class="fas fa-check-circle text-green-600"></i>'; // Ícone de check verde
+            case 5: return '<i class="fas fa-circle text-gray-600"></i>'; // Ícone de círculo cinza
+            default: return ''; // Caso padrão (não esperado)
         }
+    }
+}
 
-        // Instancia a fila com pacientes pré-preparados
-        const hospitalQueue = new HospitalQueue();
+// Classe para gerenciar a fila de pacientes com prioridade (usando um heap mínimo)
+class HospitalQueue {
+    // Construtor da classe HospitalQueue
+    constructor() {
+        this.queue = []; // Array que armazena a fila de pacientes
+        this.counter = 0; // Contador para desempate de prioridades iguais
+    }
 
-        // Adiciona pacientes iniciais com diferentes prioridades e horários
-        const initialPatients = [
-            { name: "João Silva", condition: "Infarto agudo", priority: 1, timeOffset: -30 }, // 30 minutos atrás
-            { name: "Maria Oliveira", condition: "Fratura exposta", priority: 2, timeOffset: -20 }, // 20 minutos atrás
-            { name: "Pedro Santos", condition: "Febre alta", priority: 3, timeOffset: -15 }, // 15 minutos atrás
-            { name: "Ana Costa", condition: "Dor abdominal leve", priority: 4, timeOffset: -10 }, // 10 minutos atrás
-            { name: "Lucas Almeida", condition: "Consulta de rotina", priority: 5, timeOffset: -5 }  // 5 minutos atrás
-        ];
-
-        initialPatients.forEach(patient => {
-            const arrivalTime = new Date();
-            arrivalTime.setMinutes(arrivalTime.getMinutes() + patient.timeOffset);
-            const newPatient = new Patient(patient.priority, patient.name, patient.condition, arrivalTime);
-            hospitalQueue.queue.push([newPatient.priority, hospitalQueue.counter++, newPatient]);
-        });
-
+    // Método para adicionar um paciente à fila
+    addPatient(name, condition, priority) {
+        // Valida se nome e condição não estão vazios
+        if (!name.trim() || !condition.trim()) {
+            showError("Nome e condição são obrigatórios.");
+            return false;
+        }
+        // Valida se a prioridade está no intervalo correto (1 a 5)
+        if (priority < 1 || priority > 5) {
+            showError("Prioridade deve ser entre 1 e 5.");
+            return false;
+        }
+        // Cria um novo objeto Patient
+        const patient = new Patient(priority, name, condition);
+        // Adiciona o paciente ao array com [prioridade, contador, paciente]
+        // O contador garante ordem de chegada para prioridades iguais
+        this.queue.push([patient.priority, this.counter++, patient]);
         // Reorganiza a fila para manter a propriedade do heap
-        for (let i = Math.floor(hospitalQueue.queue.length / 2) - 1; i >= 0; i--) {
-            hospitalQueue._heapifyDown(i);
+        this._heapifyUp(this.queue.length - 1);
+        // Exibe mensagem de sucesso
+        showFeedback(`Paciente ${name} adicionado com sucesso!`);
+        // Atualiza a exibição da fila
+        this.showQueue();
+        return true;
+    }
+
+    // Método para remover e retornar o próximo paciente (menor prioridade)
+    nextPatient() {
+        // Verifica se a fila está vazia
+        if (this.isEmpty()) {
+            showError("Fila vazia.");
+            return null;
         }
+        // Obtém o paciente com maior prioridade (raiz do heap)
+        const [_, __, patient] = this.queue[0];
+        // Substitui a raiz pelo último elemento
+        this.queue[0] = this.queue[this.queue.length - 1];
+        // Remove o último elemento
+        this.queue.pop();
+        // Reorganiza a fila se ainda houver elementos
+        if (this.queue.length > 0) {
+            this._heapifyDown(0);
+        }
+        // Atualiza a exibição da fila
+        this.showQueue();
+        return patient;
+    }
 
-        // Exibe a fila inicial
-        hospitalQueue.showQueue();
+    // Método que verifica se a fila está vazia
+    isEmpty() {
+        return this.queue.length === 0;
+    }
 
-        // Funções da interface
-        function addPatient() {
-            const name = document.getElementById('patientName').value;
-            const condition = document.getElementById('condition').value;
-            const priority = document.getElementById('priority').value;
-            if (hospitalQueue.addPatient(name, condition, priority)) {
-                document.getElementById('patientName').value = '';
-                document.getElementById('condition').value = '';
+    // Método para exibir a fila atual na interface
+    showQueue() {
+        // Obtém o elemento HTML onde a fila será exibida
+        const queueContent = document.getElementById('queueContent');
+        // Se a fila estiver vazia, exibe mensagem padrão
+        if (this.isEmpty()) {
+            queueContent.innerHTML = '<p class="text-gray-500 italic">Fila vazia.</p>';
+            return;
+        }
+        // Ordena a fila para exibição (menor prioridade primeiro, desempate por contador)
+        const sortedQueue = [...this.queue].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+        // Gera a tabela HTML com os pacientes
+        queueContent.innerHTML = `
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="text-gray-700 bg-gray-100">
+                        <th class="p-3 rounded-tl-lg">Nome</th>
+                        <th class="p-3">Condição</th>
+                        <th class="p-3">Prioridade</th>
+                        <th class="p-3 rounded-tr-lg">Chegada</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${sortedQueue.map(([, , patient]) => `
+                        <tr class="${patient.getPriorityClass()} table-row">
+                            <td class="p-3 border-t">${patient.name}</td>
+                            <td class="p-3 border-t">${patient.condition}</td>
+                            <td class="p-3 border-t">${patient.getPriorityIcon()} ${patient.priority}</td>
+                            <td class="p-3 border-t">${patient.arrivalTime.toLocaleTimeString()}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    // Método privado para reorganizar o heap para cima (após inserção)
+    _heapifyUp(index) {
+        let current = index; // Índice do elemento recém-adicionado
+        while (current > 0) {
+            // Calcula o índice do pai
+            const parent = Math.floor((current - 1) / 2);
+            // Se a prioridade do atual for maior ou igual ao pai, para
+            if (this.queue[current][0] >= this.queue[parent][0]) break;
+            // Troca o elemento atual com o pai
+            [this.queue[current], this.queue[parent]] = [this.queue[parent], this.queue[current]];
+            // Move para o índice do pai
+            current = parent;
+        }
+    }
+
+    // Método privado para reorganizar o heap para baixo (após remoção)
+    _heapifyDown(index) {
+        let current = index; // Índice do elemento a ser ajustado
+        const length = this.queue.length;
+        while (true) {
+            let smallest = current; // Assume que o atual é o menor
+            const left = 2 * current + 1; // Índice do filho à esquerda
+            const right = 2 * current + 2; // Índice do filho à direita
+            // Verifica se o filho à esquerda tem menor prioridade
+            if (left < length && this.queue[left][0] < this.queue[smallest][0]) {
+                smallest = left;
             }
-        }
-
-        function openAttendModal() {
-            if (hospitalQueue.isEmpty()) {
-                showError("Fila vazia.");
-                return;
+            // Verifica se o filho à direita tem menor prioridade
+            if (right < length && this.queue[right][0] < this.queue[smallest][0]) {
+                smallest = right;
             }
-            const patient = hospitalQueue.queue[0][2];
-            document.getElementById('modalPatient').innerText = `Atender: ${patient.toString()}`;
-            const modal = document.getElementById('attendModal');
-            modal.style.display = 'block';
-            modal.classList.add('active');
+            // Se o menor for o atual, para
+            if (smallest === current) break;
+            // Troca o elemento atual com o menor filho
+            [this.queue[current], this.queue[smallest]] = [this.queue[smallest], this.queue[current]];
+            // Move para o índice do menor
+            current = smallest;
         }
+    }
+}
 
-        function closeAttendModal() {
-            const modal = document.getElementById('attendModal');
-            modal.style.display = 'none';
-            modal.classList.remove('active');
-        }
+// Instancia a fila do hospital
+const hospitalQueue = new HospitalQueue();
 
-        function attendNextPatient() {
-            const patient = hospitalQueue.nextPatient();
-            if (patient) {
-                showFeedback(`Atendendo: ${patient.name}`);
-                closeAttendModal();
-            }
-        }
+// Lista de pacientes iniciais para popular a fila
+const initialPatients = [
+    { name: "João Silva", condition: "Infarto agudo", priority: 1, timeOffset: -30 }, // 30 minutos atrás
+    { name: "Maria Oliveira", condition: "Fratura exposta", priority: 2, timeOffset: -20 }, // 20 minutos atrás
+    { name: "Pedro Santos", condition: "Febre alta", priority: 3, timeOffset: -15 }, // 15 minutos atrás
+    { name: "Ana Costa", condition: "Dor abdominal leve", priority: 4, timeOffset: -10 }, // 10 minutos atrás
+    { name: "Lucas Almeida", condition: "Consulta de rotina", priority: 5, timeOffset: -5 }  // 5 minutos atrás
+];
 
-        function showFeedback(message) {
-            const feedback = document.getElementById('feedback');
-            feedback.innerText = message;
-            feedback.classList.remove('hidden');
-            setTimeout(() => feedback.classList.add('hidden'), 3000);
-        }
+// Adiciona os pacientes iniciais à fila
+initialPatients.forEach(patient => {
+    // Calcula o horário de chegada com base no offset
+    const arrivalTime = new Date();
+    arrivalTime.setMinutes(arrivalTime.getMinutes() + patient.timeOffset);
+    // Cria um novo paciente com o horário ajustado
+    const newPatient = new Patient(patient.priority, patient.name, patient.condition, arrivalTime);
+    // Adiciona o paciente ao array da fila
+    hospitalQueue.queue.push([newPatient.priority, hospitalQueue.counter++, newPatient]);
+});
 
-        function showError(message) {
-            const error = document.getElementById('error');
-            error.innerText = message;
-            error.classList.remove('hidden');
-            setTimeout(() => error.classList.add('hidden'), 3000);
-        }
+// Reorganiza a fila para manter a propriedade do heap
+for (let i = Math.floor(hospitalQueue.queue.length / 2) - 1; i >= 0; i--) {
+    hospitalQueue._heapifyDown(i);
+}
+
+// Exibe a fila inicial na interface
+hospitalQueue.showQueue();
+
+// Função para adicionar um paciente a partir do formulário
+function addPatient() {
+    // Obtém os valores dos campos do formulário
+    const name = document.getElementById('patientName').value;
+    const condition = document.getElementById('condition').value;
+    const priority = document.getElementById('priority').value;
+    // Adiciona o paciente à fila e limpa os campos se bem-sucedido
+    if (hospitalQueue.addPatient(name, condition, priority)) {
+        document.getElementById('patientName').value = '';
+        document.getElementById('condition').value = '';
+    }
+}
+
+// Função para abrir o modal de atendimento
+function openAttendModal() {
+    // Verifica se a fila está vazia
+    if (hospitalQueue.isEmpty()) {
+        showError("Fila vazia.");
+        return;
+    }
+    // Obtém o próximo paciente (raiz do heap)
+    const patient = hospitalQueue.queue[0][2];
+    // Exibe as informações do paciente no modal
+    document.getElementById('modalPatient').innerText = `Atender: ${patient.toString()}`;
+    // Mostra o modal
+    const modal = document.getElementById('attendModal');
+    modal.style.display = 'block';
+    modal.classList.add('active');
+}
+
+// Função para fechar o modal de atendimento
+function closeAttendModal() {
+    // Obtém o elemento do modal
+    const modal = document.getElementById('attendModal');
+    // Esconde o modal
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+}
+
+// Função para atender o próximo paciente
+function attendNextPatient() {
+    // Remove e obtém o próximo paciente
+    const patient = hospitalQueue.nextPatient();
+    if (patient) {
+        // Exibe mensagem de sucesso
+        showFeedback(`Atendendo: ${patient.name}`);
+        // Fecha o modal
+        closeAttendModal();
+    }
+}
+
+// Função para exibir mensagens de feedback (sucesso)
+function showFeedback(message) {
+    // Obtém o elemento de feedback
+    const feedback = document.getElementById('feedback');
+    // Define a mensagem
+    feedback.innerText = message;
+    // Mostra o elemento
+    feedback.classList.remove('hidden');
+    // Esconde após 3 segundos
+    setTimeout(() => feedback.classList.add('hidden'), 3000);
+}
+
+// Função para exibir mensagens de erro
+function showError(message) {
+    // Obtém o elemento de erro
+    const error = document.getElementById('error');
+    // Define a mensagem
+    error.innerText = message;
+    // Mostra o elemento
+    error.classList.remove('hidden');
+    // Esconde após 3 segundos
+    setTimeout(() => error.classList.add('hidden'), 3000);
+}
     </script>
 </body>
 </html>
